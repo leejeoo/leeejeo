@@ -285,7 +285,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'POST' && url.pathname === '/api/preview') return send(res, 200, await ensureHexoServer());
   if (req.method === 'POST' && url.pathname === '/api/action') {
     const data = JSON.parse((await readBody(req)) || '{}');
-    if (data.action === 'build') return send(res, 200, await run('npx hexo generate'));
+    if (data.action === 'build') return send(res, 200, await run('npx hexo clean && npx hexo generate'));
     if (data.action === 'git-status') return send(res, 200, await run('git status --short'));
     if (data.action === 'preview-start') return send(res, 200, await ensureHexoServer());
     if (data.action === 'preview-stop') return send(res, 200, await run("for /f \"tokens=5\" %a in ('netstat -ano ^| findstr :4000 ^| findstr LISTENING') do taskkill /PID %a /F"));
