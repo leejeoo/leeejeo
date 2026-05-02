@@ -253,7 +253,14 @@ const server = http.createServer(async (req, res) => {
     const baseDir = status === 'draft' ? DRAFTS_DIR : POSTS_DIR;
     const p = path.join(baseDir, file);
     if (!fs.existsSync(p)) return send(res, 404, { message: '文件不存在' });
-    fs.unlinkSync(p); return send(res, 200, { message: '已删除：' + file });
+    fs.unlinkSync(p);
+    const build = await run('npx hexo clean && npx hexo generate');
+    return send(res, build.ok ? 200 : 500, {
+      message: build.ok
+        ? `已删除并重新生成：${file}。本地预览请刷新页面。`
+        : `已删除：${file}，但重新生成失败，请查看输出。`,
+      output: build.output
+    });
   }
   if (req.method === 'POST' && url.pathname === '/api/posts') {
     const data = JSON.parse((await readBody(req)) || '{}');
@@ -289,7 +296,7 @@ const server = http.createServer(async (req, res) => {
     if (data.action === 'git-status') return send(res, 200, await run('git status --short'));
     if (data.action === 'preview-start') return send(res, 200, await ensureHexoServer());
     if (data.action === 'preview-stop') return send(res, 200, await run("for /f \"tokens=5\" %a in ('netstat -ano ^| findstr :4000 ^| findstr LISTENING') do taskkill /PID %a /F"));
-    if (data.action === 'git-push') { const a = await run('git add . && git commit -m "update from local admin"'); const b = await run('git push'); return send(res, 200, { output: [a.output, b.output].join('\n\n') }); }
+    if (data.action === 'git-push') { const a = await run('git add -A && git commit -m "update from local admin"'); const b = await run('git push'); return send(res, 200, { output: [a.output, b.output].join('\n\n') }); }
     return send(res, 400, { message: '未知操作' });
   }
   send(res, 404, { message: 'Not found' });
